@@ -1,0 +1,50 @@
+Deploy Cluster 
+  gcloud container clusters create demo-cluster \
+  --machine-type "e2-medium" --num-nodes 2 \
+  --labels=owner=thekubebuddy --subnetwork=$SUBNETWORK \
+  --network=$NETWORK --workload-pool=$PROJECT_ID.svc.id.goog \
+  --workload-metadata=GKE_METADATA --enable-master-authorized-networks --master-authorized-networks $(curl -s icanhazip.com)/32
+  gcloud container clusters get-credentials demo-cluster
+
+  kubectl create clusterrolebinding cluster-admin-binding --clusterrole cluster-admin --user $(gcloud config get-value account)
+  gcloud compute addresses create nginx-ingress-controller-static-ip
+  export STATIC_EXTERNAL_IP=$(gcloud compute addresses describe nginx-ingress-controller-static-ip --region=us-central1  --format='get(address)')
+  cat nginx-ingress-controller-v0.48.1.yaml | envsubst | kubectl apply -f deploy-cluster/nginx-ingress-controller-v0.48.1.yaml
+
+  kubectl apply -f deploy-cluster/cert-manager-v1.4.0.yaml
+  export EMAIL_ID=EMAIL_ID
+  cat letsencrypt-issuer.yaml | envsubst | kubectl apply -f-
+
+  export GSA_NAME="external-dns-gsa"
+  gcloud iam service-accounts create external-dns-gsa --display-name="$GSA_NAME"
+  export GSA_EMAIL=$(gcloud iam service-accounts list --format='value(email)' --filter="displayName:$GSA_NAME")
+  gcloud projects add-iam-policy-binding $PROJECT_ID --member="serviceAccount:$GSA_EMAIL" --role=roles/dns.admin
+  export K8s_NAMESPACE=external-dns
+  export K8s_SA=external-dns
+  gcloud iam service-accounts add-iam-policy-binding "$GSA_EMAIL" --member="serviceAccount:$PROJECT_ID.svc.id.goog[$K8s_NAMESPACE/$K8s_SA]" --role=roles/iam.workloadIdentityUser
+  export DNS_NAME="DNS_NAME"
+  cat deploy-cluster/controller-v0.8.0.yaml | envsubst | kubectl apply -f-
+toolchain
+  jenkins
+
+  sonarqube
+    helm repo add sonarqube https://SonarSource.github.io/helm-chart-sonarqube
+    helm upgrade --install --namespace sonarqube --values ./my-values.yaml my-release oteemocharts/sonarqube
+    sonar-scanner -X -Dsonar.projectKey=react-project -Dsonar.sources=. -Dsonar.host.url=https://cr.singorojo.my.id -Dsonar.login=7b9c708a106cb200e16cab60f5e664dcc1acf695
+  metabase
+  argocd
+database
+  in-cluster
+    kafka
+    mongodb
+    mysql
+    redis
+  out-cluster
+    cloudsql
+    memcache
+deploy-application
+
+
+
+
+

@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metabase-ingress
+  namespace: metabase
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  labels:
+    type: metabase-app
+spec:
+  tls:
+  - hosts:
+    - metabase.singorojo.my.id
+    secretName: metabase-tls
+  rules:
+  - host: metabase.singorojo.my.id
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: metabase-metabase
+            port:
+              number: 3000
